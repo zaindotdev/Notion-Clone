@@ -15,7 +15,9 @@
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
     "@radix-ui/react-label": "^2.1.2",
+    "@radix-ui/react-separator": "^1.1.2",
     "@radix-ui/react-slot": "^1.1.2",
+    "@radix-ui/react-toast": "^1.2.6",
     "@remixicon/react": "^4.6.0",
     "@supabase/supabase-js": "^2.48.1",
     "class-variance-authority": "^0.7.1",

@@ -13,67 +13,53 @@ import {
 import { Input } from "@/components/ui/input";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Eye, EyeClosed } from "lucide-react";
-import { SignInFormType, signInSchema } from "@/zod/schema";
+import { Eye, EyeClosed, LoaderCircle } from "lucide-react";
+import { SignUpFormType, signUpSchema } from "@/zod/schema";
 import Link from "next/link";
 import { RiGoogleFill, RiGithubFill } from "@remixicon/react";
-import { signIn } from "@/lib/auth";
-import { useAuth } from "@/context/authContext";
-import { useToast } from "@/hooks/use-toast";
+import { isUserVerified, signUp } from "@/lib/auth";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/hooks/use-toast";
 
-const SignIn = () => {
+const SignUp = () => {
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
-  const form = useForm<SignInFormType>({
-    resolver: zodResolver(signInSchema),
+  const { toast } = useToast();
+  const router = useRouter();
+  const form = useForm<SignUpFormType>({
+    resolver: zodResolver(signUpSchema),
     defaultValues: {
+      name: "",
       email: "",
       password: "",
     },
   });
 
-  const { toast } = useToast();
-  const router = useRouter();
-  const { setToken } = useAuth();
-
-  // 2. Define a submit handler.
-  const onSubmit = async (values: SignInFormType) => {
+  const onSubmit = async (values: SignUpFormType) => {
     setLoading(true);
     try {
-      const response = await signIn(values);
-      console.log("Response.....................", response);
+      const response = await signUp(values);
+
       if (response) {
-        if ("session" in response) {
-          setToken(response.session.access_token as string);
-          toast({
-            title: "Success",
-            description: "Signed in successfully",
-          });
-          if (response.user) {
-            router.replace(
-              `/dashboard/${response.user?.identities?.[0]?.identity_data?.name}/${response.session?.user?.id}`
-            );
-          }
-        } else {
-          toast({
-            title: "Error",
-            description: "Failed to sign in.",
-            variant: "destructive",
-          });
-        }
+        toast({
+          title: "Success",
+          description: "Signed up successfully",
+        });
+        router.replace(`/verify`);
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description:
-          error instanceof Error ? error.message : "Something went wrong",
-        variant: "destructive",
-      });
+      if (error instanceof Error) {
+        toast({
+          variant: "destructive",
+          title: "Error while signing up...",
+          description: error.message,
+        });
+      }
     } finally {
       setLoading(false);
     }
   };
+
   return (
     <main className="w-full min-h-screen dark:bg-neutral-900 flex items-center justify-between sm:flex-row flex-col gap-10">
       <section className="left md:w-1/2 w-full">
@@ -87,14 +73,29 @@ const SignIn = () => {
       <section className="right md:w-1/2 w-full p-8">
         <div className="md:w-1/2 mx-auto">
           <div className="mb-8">
-            <h1 className="text-4xl font-bold">Welcome Back! ✨</h1>
-            <p>Sign in to your account</p>
+            <h1 className="text-4xl font-bold">New to Notion? 🚀</h1>
+            <p>Sign up to your account</p>
           </div>
           <Form {...form}>
             <form
               onSubmit={form.handleSubmit(onSubmit)}
               className="space-y-8  mx-auto"
             >
+              <div className="w-full">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Name" type="text" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
               <div className="w-full">
                 <FormField
                   control={form.control}
@@ -136,17 +137,21 @@ const SignIn = () => {
                 </span>
               </div>
               <div className="w-full">
-                <Button className="w-full" type="submit">
-                  Sign In
+                <Button className="w-full" type="submit" disabled={loading}>
+                  {loading ? (
+                    <LoaderCircle className="animate-spin duration-300" />
+                  ) : (
+                    "Sign Up"
+                  )}
                 </Button>
               </div>
             </form>
           </Form>
           <div className="mt-4">
             <p className="text-sm">
-              Don&apos;t have an Account?{" "}
+              Already have an Account?{" "}
               <span className="hover:underline duration-300">
-                <Link href="/sign-up">Sign Up</Link>
+                <Link href="/sign-in">Sign In</Link>
               </span>
             </p>
           </div>
@@ -169,4 +174,4 @@ const SignIn = () => {
   );
 };
 
-export default SignIn;
+export default SignUp;

@@ -75,8 +75,8 @@ const SignIn = () => {
     }
   };
   return (
-    <main className="w-full min-h-screen dark:bg-neutral-900 flex items-center justify-between sm:flex-row flex-col gap-10">
-      <section className="left md:w-1/2 w-full">
+    <main className="w-full min-h-screen dark:bg-neutral-900 flex items-center justify-between sm:flex-row flex-col p-4">
+      <section className="left md:w-1/2 w-full max-w-[200px] border-2 border-black rounded-full overflow-hidden">
         <Image
           src={"/sign-in.jpg"}
           width={window.innerWidth}

@@ -18,6 +18,7 @@ import { NodeSelector } from "./node-selector";
 import { LinkSelector } from "./link-selector";
 import { ColorSelector } from "./color-selector";
 import { TextButtons } from "./text-buttons";
+import { Badge } from "../ui/badge";
 
 const Editor = () => {
   const [content, setContent] = useState<JSONContent>({
@@ -35,7 +36,7 @@ const Editor = () => {
     ],
   });
 
-  const [saveStatus, setSaveStatus] = useState("Saving...");
+  const [saveStatus, setSaveStatus] = useState("Saved");
   const [openNode, setOpenNode] = useState(false);
   const [openLink, setOpenLink] = useState(false);
   const [openColor, setOpenColor] = useState(false);
@@ -46,7 +47,7 @@ const Editor = () => {
       const json = editor.getJSON();
       setContent(json);
       console.log(json);
-      setSaveStatus("Saved");
+      setSaveStatus("Saving...");
     },
     500
   );
@@ -54,16 +55,23 @@ const Editor = () => {
   const extensions = [...defaultExtensions, slashCommand];
 
   return (
-    <section className="text-white">
+    <section className="relative bg-white dark:bg-zinc-900 p-4 text-black dark:text-white">
+      <div className="flex overflow-hidden mb-8">
+        {saveStatus && (
+          <Badge className="bg-zinc-200 dark:bg-zinc-800 text-black dark:text-white border border-zinc-300 dark:border-zinc-700">
+            {saveStatus}
+          </Badge>
+        )}
+      </div>
       <EditorRoot>
         <EditorContent
-          className="h-screen w-full"
+          className="h-screen w-full bg-white dark:bg-zinc-900 text-black dark:text-white"
           initialContent={content}
           extensions={extensions}
           onUpdate={debouncedUpdates}
         >
-          <EditorCommand className="z-50 h-auto max-h-[330px]  w-72 overflow-y-auto rounded-md border border-muted bg-primary px-1 py-2 shadow-md transition-all">
-            <EditorCommandEmpty className="px-2 text-muted-foreground">
+          <EditorCommand className="border p-2 flex flex-col gap-2 items-center rounded-xl overflow-y-auto max-h-80">
+            <EditorCommandEmpty className="px-2 text-zinc-500 dark:text-zinc-400">
               No results
             </EditorCommandEmpty>
             <EditorCommandList>
@@ -71,15 +79,17 @@ const Editor = () => {
                 <EditorCommandItem
                   value={item.title}
                   onCommand={(val) => item.command?.(val)}
-                  className={`flex w-full items-center space-x-2 rounded-md px-2 py-1 text-left text-sm hover:bg-accent aria-selected:bg-accent `}
+                  className="flex  items-center justify-start gap-2 px-2 py-1 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
                   key={item.title}
                 >
-                  <div className="flex h-10 w-10 items-center justify-center rounded-md border border-muted bg-primary">
+                  <div className="p-2 rounded-lg bg-zinc-200 dark:bg-zinc-700 shadow-[inset_0_1px_0_0_rgba(0,0,0,0.1)] ">
                     {item.icon}
                   </div>
                   <div>
-                    <p className="font-medium">{item.title}</p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="font-medium text-black dark:text-white">
+                      {item.title}
+                    </p>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
                       {item.description}
                     </p>
                   </div>
@@ -91,7 +101,7 @@ const Editor = () => {
             tippyOptions={{
               placement: openAI ? "bottom-start" : "top",
             }}
-            className="flex w-fit max-w-[90vw] overflow-hidden rounded border border-muted bg-primary shadow-xl"
+            className="flex w-fit max-w-[90vw] overflow-hidden rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 shadow-xl text-black dark:text-white"
           >
             <NodeSelector open={openNode} onOpenChange={setOpenNode} />
             <LinkSelector open={openLink} onOpenChange={setOpenLink} />

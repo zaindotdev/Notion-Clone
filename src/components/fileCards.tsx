@@ -18,7 +18,7 @@ const FileCards: React.FC<FileCardsProps> = ({ file, ...props }) => {
   return (
     <Card
       {...props}
-      className="w-full bg-white/10 shadow-xl border-none text-white backdrop-blur-xl relative"
+      className="w-full bg-white/10 dark:bg-zinc-800/70 shadow-xl border-none backdrop-filter dark:text-zinc-100 text-zinc-900 backdrop-blur-xl relative hover:bg-white/15 dark:hover:bg-zinc-800/50"
     >
       <CardHeader>
         <CardTitle>{file.name}</CardTitle>
@@ -27,7 +27,7 @@ const FileCards: React.FC<FileCardsProps> = ({ file, ...props }) => {
       <Separator />
       <FileText className="absolute top-2 right-2" />
       <CardFooter className="p-2">
-        <p className="text-sm ">{file.updatedAt.toDateString()}</p>
+        <p className="text-xs">Last Updated: {file.updatedAt.toDateString()}</p>
       </CardFooter>
     </Card>
   );

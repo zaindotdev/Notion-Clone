@@ -33,9 +33,9 @@ const Dashboard = () => {
     },
   ];
   return (
-    <main className="w-full min-h-screen bg-primary">
+    <main className="w-full min-h-screen dark:bg-zinc-900 bg-zinc-100">
       <section className="container mx-auto p-8 ">
-        <h1 className="text-4xl font-bold text-primary-foreground text-center tracking-tight">
+        <h1 className="text-4xl font-bold dark:text-zinc-100 text-zinc-900 text-center tracking-tight">
           {time},{" "}
           <span className="font-black font-gray-900 text-5xl">
             {(user.identities && user?.identities[0]?.identity_data?.name) ||

@@ -59,7 +59,7 @@ import { useAuth } from "@/context/authContext";
 import { signOut } from "@/lib/auth";
 import type { User } from "@supabase/supabase-js";
 import type { Workspaces, Pages } from "@/lib/types/types";
-import { useFileState } from "@/context/FileStateProvider";
+import { useFileState } from "@/context/fileStateProvider";
 
 const formSchema = z.object({
   workspaceName: z.string().min(2, {

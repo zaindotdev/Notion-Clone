@@ -18,10 +18,9 @@ const SocketProvider = ({ children }: { children: React.ReactNode }) => {
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    console.log(process.env.NEXT_PUBLIC_SOCKET_URL);
-    const socketInstance = io("http://localhost:3000", {
+    const socketInstance = io(process.env.NEXT_PUBLIC_CLIENT_URL, {
       path: "/api/socket/io",
-      transports: ["websocket", "polling"],
+      addTrailingSlash: false,
     });
     socketInstance.on("connect", () => {
       setIsConnected(true);
@@ -32,14 +31,7 @@ const SocketProvider = ({ children }: { children: React.ReactNode }) => {
     });
 
     socketInstance.on("connect_error", (err: any) => {
-      // the reason of the error, for example "xhr poll error"
-      console.log(err.message);
-
-      // some additional description, for example the status code of the initial HTTP response
-      console.log(err.description);
-
-      // some additional context, for example the XMLHttpRequest object
-      console.log(err.context);
+      console.error(err);
     });
 
     setSocket(socketInstance);

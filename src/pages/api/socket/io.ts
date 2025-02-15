@@ -20,10 +20,6 @@ export default function handler(
     const io = new SocketIOServer(http, {
       path: "/api/socket/io",
       addTrailingSlash: false,
-      cors: {
-        credentials: true,
-        origin: "*",
-      },
       pingTimeout: 60000,
     });
 

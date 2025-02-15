@@ -56,15 +56,11 @@ export const collaborators = pgTable("collaborators", {
   createdAt: timestamp("created_at", {
     withTimezone: true,
     mode: "string",
-  })
-    .notNull()
-    .defaultNow(),
+  }).defaultNow(),
   updatedAt: timestamp("updated_at", {
     withTimezone: true,
     mode: "string",
-  })
-    .notNull()
-    .defaultNow(),
+  }).defaultNow(),
 });
 
 export const pages = pgTable("pages", {
@@ -78,15 +74,11 @@ export const pages = pgTable("pages", {
   createdAt: timestamp("created_at", {
     withTimezone: true,
     mode: "string",
-  })
-    .notNull()
-    .defaultNow(),
+  }).defaultNow(),
   updatedAt: timestamp("updated_at", {
     withTimezone: true,
     mode: "string",
-  })
-    .notNull()
-    .defaultNow(),
+  }).defaultNow(),
 });
 
 export const subscriptions = pgTable("subscriptions", {

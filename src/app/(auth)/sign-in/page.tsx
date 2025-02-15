@@ -42,7 +42,6 @@ const SignIn = () => {
     setLoading(true);
     try {
       const response = await signIn(values);
-      console.log("Response.....................", response);
       if (response) {
         if ("session" in response) {
           setToken(response.session.access_token as string);
@@ -51,9 +50,7 @@ const SignIn = () => {
             description: "Signed in successfully",
           });
           if (response.user) {
-            router.replace(
-              `/dashboard/${response.user?.identities?.[0]?.identity_data?.name}/${response.session?.user?.id}`
-            );
+            router.replace(`/dashboard`);
           }
         } else {
           toast({
@@ -76,7 +73,7 @@ const SignIn = () => {
   };
   return (
     <main className="w-full min-h-screen dark:bg-neutral-900 flex items-center justify-between sm:flex-row flex-col p-4">
-      <section className="left md:w-1/2 w-full max-w-[200px] border-2 border-black rounded-full overflow-hidden">
+      <section className="left md:w-1/2 w-full max-w-[200px] sm:max-w-[50%] border-2 border-black rounded-full sm:rounded-none overflow-hidden">
         <Image
           src={"/sign-in.jpg"}
           width={window.innerWidth}

@@ -1,5 +1,7 @@
 "use client";
-import Sidebar from "@/components/sidebar";
+import { AppSidebar } from "@/components/AppSidebar";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import FileStateProvider from "../../context/fileStateProvider";
 import React from "react";
 
 interface LayoutProps {
@@ -7,11 +9,14 @@ interface LayoutProps {
 }
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
-    <main className="min-h-screen w-full grid sm:grid-cols-[1fr,5fr] grid-cols-1">
-      <section className="sm:block hidden">
-        <Sidebar />
-      </section>
-      <section>{children}</section>
+    <main>
+      <FileStateProvider>
+        <SidebarProvider>
+          <SidebarTrigger />
+          <AppSidebar />
+          {children}
+        </SidebarProvider>
+      </FileStateProvider>
     </main>
   );
 };

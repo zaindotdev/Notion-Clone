@@ -12,7 +12,7 @@ import {
   JSONContent,
   EditorBubble,
 } from "novel";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useDebounceCallback } from "usehooks-ts";
 import { NodeSelector } from "./node-selector";
 import { LinkSelector } from "./link-selector";
@@ -21,7 +21,6 @@ import { TextButtons } from "./text-buttons";
 import { Badge } from "../ui/badge";
 import { getPageById, updatePage } from "@/lib/query";
 import { useParams } from "next/navigation";
-import { Input } from "../ui/input";
 import { useFileState } from "@/context/fileStateProvider";
 import { Loader2Icon } from "lucide-react";
 
@@ -29,7 +28,7 @@ const Editor = () => {
   const params = useParams();
   const { title, setTitle } = useFileState();
   const [content, setContent] = useState<JSONContent | null>(null);
-  const [loading, setLoading] = useState(true); // ✅ Loading state
+  const [loading, setLoading] = useState(true); 
   const [saveStatus, setSaveStatus] = useState("Saved");
   const [openNode, setOpenNode] = useState(false);
   const [openLink, setOpenLink] = useState(false);
@@ -57,21 +56,43 @@ const Editor = () => {
 
       try {
         const response = await getPageById(params.fileId as string);
+        console.log("Response:", response);
 
-        if (response) {
-          const parsedContent = JSON.parse(response.content);
-          setContent(parsedContent);
-          setTitle(response.title);
+        if (response?.content) {
+          try {
+            const parsedContent = JSON.parse(response.content);
+            setContent(parsedContent);
+          } catch (error) {
+            console.error("Error parsing content JSON:", error);
+            setContent(null); // Set default empty content if parsing fails
+          }
+        } else {
+          console.warn("Empty content received, initializing with default.");
+          setContent({
+            type: "doc",
+            content: [
+              {
+                type: "paragraph",
+                content: [
+                  {
+                    type: "text",
+                    text: "Type here or use '/' for more commands",
+                  },
+                ],
+              },
+            ],
+          });
         }
+
+        setTitle(response?.title || "Untitled");
       } catch (error) {
         console.error("Error fetching page:", error);
       } finally {
-        setLoading(false); // ✅ Stop loading when data is fetched
+        setLoading(false);
       }
     };
-
     fetchPage();
-  }, [params.fileId, setTitle]);
+  }, [params?.fileId, setTitle]);
 
   useEffect(() => {
     if (title.trim() !== "" && params?.fileId) {

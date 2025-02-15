@@ -15,6 +15,13 @@
       "when": 1739608836009,
       "tag": "0001_unique_mordo",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1739636388959,
+      "tag": "0002_sleepy_butterfly",
+      "breakpoints": true
     }
   ]
 }

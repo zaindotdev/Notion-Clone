@@ -23,9 +23,9 @@ const FileCards: React.FC<FileCardsProps> = ({ file, ...props }) => {
       <CardHeader>
         <CardTitle>{file.title}</CardTitle>
       </CardHeader>
-      <CardContent className="prose p-4">
-        {JSON.parse(file.content)}
-      </CardContent>
+      {file.content && (
+        <CardContent className="prose p-4">{parse(file.content)}</CardContent>
+      )}
       <Separator />
       <FileText className="absolute top-2 right-2" />
       <CardFooter className="p-2">

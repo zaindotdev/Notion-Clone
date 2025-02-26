@@ -6,31 +6,26 @@ import {
   CardHeader,
   CardTitle,
 } from "./ui/card";
-import { Separator } from "./ui/separator";
 import parse from "html-react-parser";
 import { FileText } from "lucide-react";
+import { Pages } from "@/lib/types/types";
 
 interface FileCardsProps {
-  file: any;
+  file: Pages;
 }
 
 const FileCards: React.FC<FileCardsProps> = ({ file, ...props }) => {
   return (
-    <Card
-      {...props}
-      className="w-full bg-white/10 dark:bg-zinc-800/70 shadow-xl border-none backdrop-filter dark:text-zinc-100 text-zinc-900 backdrop-blur-xl relative hover:bg-white/15 dark:hover:bg-zinc-800/50"
-    >
+    <Card {...props} className="w-full max-w-[200px]">
       <CardHeader>
         <CardTitle>{file.title}</CardTitle>
       </CardHeader>
-      {file.content && (
-        <CardContent className="prose p-4">{parse(file.content)}</CardContent>
-      )}
-      <Separator />
-      <FileText className="absolute top-2 right-2" />
-      <CardFooter className="p-2">
+      <CardContent>
+        {file.content !== "null" && parse(file.content)}
+      </CardContent>
+      <CardFooter>
         <p className="text-xs">
-          Last Updated: {new Date(file.updated_at).toDateString()}
+          Last Updated At <br /> {new Date(file.updated_at).toDateString()}
         </p>
       </CardFooter>
     </Card>

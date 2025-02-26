@@ -17,7 +17,7 @@ export const createWorkspace = async ({
       .values({
         id: crypto.randomUUID(),
         name,
-        userId,
+        user_id: userId,
       })
       .returning();
   } catch (error) {
@@ -39,9 +39,14 @@ export const getWorkspaceById = async (id: string) => {
   }
 };
 
-export const getAllWorkspaces = async () => {
+export const getAllWorkspaces = async (userId: string) => {
   try {
-    return await db.select().from(workspaces);
+    if (userId) {
+      return await db
+        .select()
+        .from(workspaces)
+        .where(eq(workspaces.user_id, userId));
+    }
   } catch (error) {
     console.error("Error fetching workspaces:", error);
     throw error;
@@ -89,8 +94,8 @@ export const createPage = async ({
         id: crypto.randomUUID(),
         title,
         content,
-        workspaceId,
-        inTrash,
+        workspace_id: workspaceId,
+        in_trash: inTrash,
       })
       .returning();
   } catch (error) {
@@ -157,7 +162,7 @@ export const getPagesByWorkspaceId = async (workspaceId: string) => {
     return await db
       .select()
       .from(pages)
-      .where(eq(pages.workspaceId, workspaceId));
+      .where(eq(pages.workspace_id, workspaceId));
   } catch (error) {
     console.error("Error fetching pages for workspace:", error);
     throw error;
@@ -196,8 +201,8 @@ export const addCollaborators = async ({
       .insert(collaborators)
       .values({
         id: crypto.randomUUID(),
-        userId,
-        workspaceId,
+        user_id: userId,
+        workspace_id: workspaceId,
         role,
       })
       .returning();
@@ -212,7 +217,7 @@ export const getCollaboratorsByWorkspaceId = async (workspaceId: string) => {
     return await db
       .select()
       .from(collaborators)
-      .where(eq(collaborators.workspaceId, workspaceId));
+      .where(eq(collaborators.workspace_id, workspaceId));
   } catch (error) {
     console.error("Error fetching collaborators for workspace:", error);
     throw error;
@@ -263,7 +268,7 @@ export const createSubscription = async ({
       .values({
         id: crypto.randomUUID(),
         status,
-        userId,
+        user_id: userId,
       })
       .returning();
   } catch (error) {
@@ -277,7 +282,7 @@ export const getSubscriptionByUserId = async (userId: string) => {
     const result = await db
       .select()
       .from(subscriptions)
-      .where(eq(subscriptions.userId, userId));
+      .where(eq(subscriptions.user_id, userId));
     return result[0] || null;
   } catch (error) {
     console.error("Error fetching subscription:", error);

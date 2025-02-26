@@ -5,7 +5,6 @@ import {
   ChevronDown,
   ChevronRight,
   Loader2Icon,
-  LogOut,
   Plus,
   Search,
 } from "lucide-react";
@@ -56,10 +55,10 @@ import {
 } from "@/lib/query";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/context/authContext";
-import { signOut } from "@/lib/auth";
-import type { User } from "@supabase/supabase-js";
 import type { Workspaces, Pages } from "@/lib/types/types";
 import { useFileState } from "@/context/fileStateProvider";
+import { ModeToggle } from "./mode-toggle";
+import LogoutBtn from "./logout-btn";
 
 const formSchema = z.object({
   workspaceName: z.string().min(2, {
@@ -83,7 +82,7 @@ export function AppSidebar() {
   const [openPagesDialog, setOpenPagesDialog] = useState(false);
   const router = useRouter();
   const params = useParams();
-  const { user, setToken, setUser } = useAuth();
+  const { user } = useAuth();
   const { setTitle } = useFileState();
   const [workspaceLoading, setWorkspaceLoading] = useState(false);
   const [pagesLoading, setPagesLoading] = useState(false);
@@ -92,23 +91,6 @@ export function AppSidebar() {
   );
   const [isCreatingWorkspace, setIsCreatingWorkspace] = useState(false);
   const [isCreatingPage, setIsCreatingPage] = useState(false);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
-
-  const handleLogout = async () => {
-    setIsLoggingOut(true);
-    try {
-      const res = await signOut();
-      if (res) {
-        setUser({} as User);
-        setToken("");
-        router.push("/sign-in");
-      }
-    } catch (error) {
-      console.error("Logout failed:", error);
-    } finally {
-      setIsLoggingOut(false);
-    }
-  };
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -127,7 +109,7 @@ export function AppSidebar() {
   const fetchWorkspaces = useCallback(async () => {
     setWorkspaceLoading(true);
     try {
-      const workspace = await getAllWorkspaces();
+      const workspace = await getAllWorkspaces(user?.id as string);
       if (workspace) {
         setWorkspaces(workspace as unknown as Workspaces[]);
       }
@@ -136,7 +118,7 @@ export function AppSidebar() {
     } finally {
       setWorkspaceLoading(false);
     }
-  }, []);
+  }, [user?.id]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsCreatingWorkspace(true);
@@ -430,25 +412,9 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
-        <div className="p-2">
-          <Button
-            type="button"
-            onClick={handleLogout}
-            className="w-full"
-            disabled={isLoggingOut}
-          >
-            {isLoggingOut ? (
-              <>
-                <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
-                Logging out...
-              </>
-            ) : (
-              <>
-                <LogOut className="mr-2 h-4 w-4" />
-                Logout
-              </>
-            )}
-          </Button>
+        <div className="w-full flex items-center justify-end gap-2">
+          <LogoutBtn />
+          <ModeToggle />
         </div>
       </SidebarFooter>
     </Sidebar>

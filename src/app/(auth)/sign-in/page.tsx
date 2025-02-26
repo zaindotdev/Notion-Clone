@@ -13,7 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Eye, EyeClosed } from "lucide-react";
+import { Eye, EyeClosed, Loader2Icon } from "lucide-react";
 import { SignInFormType, signInSchema } from "@/zod/schema";
 import Link from "next/link";
 import { RiGoogleFill, RiGithubFill } from "@remixicon/react";
@@ -35,7 +35,6 @@ const SignIn = () => {
 
   const { toast } = useToast();
   const router = useRouter();
-  const { setToken } = useAuth();
 
   // 2. Define a submit handler.
   const onSubmit = async (values: SignInFormType) => {
@@ -44,7 +43,6 @@ const SignIn = () => {
       const response = await signIn(values);
       if (response) {
         if ("session" in response) {
-          setToken(response.session.access_token as string);
           toast({
             title: "Success",
             description: "Signed in successfully",
@@ -134,7 +132,11 @@ const SignIn = () => {
               </div>
               <div className="w-full">
                 <Button className="w-full" type="submit">
-                  Sign In
+                  {loading ? (
+                    <Loader2Icon className="animate-spin" />
+                  ) : (
+                    "Sign In"
+                  )}
                 </Button>
               </div>
             </form>

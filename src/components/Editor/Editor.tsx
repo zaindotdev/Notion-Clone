@@ -11,8 +11,9 @@ import {
   EditorCommandItem,
   JSONContent,
   EditorBubble,
+  useEditor,
 } from "novel";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import { useDebounceCallback } from "usehooks-ts";
 import { NodeSelector } from "./node-selector";
 import { LinkSelector } from "./link-selector";
@@ -23,32 +24,58 @@ import { getPageById, updatePage } from "@/lib/query";
 import { useParams } from "next/navigation";
 import { useFileState } from "@/context/fileStateProvider";
 import { Loader2Icon } from "lucide-react";
+import { useSocket } from "@/context/socketProvider";
 
 const Editor = () => {
   const params = useParams();
   const { title, setTitle } = useFileState();
   const [content, setContent] = useState<JSONContent | null>(null);
-  const [loading, setLoading] = useState(true); 
+  const [loading, setLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState("Saved");
   const [openNode, setOpenNode] = useState(false);
   const [openLink, setOpenLink] = useState(false);
   const [openColor, setOpenColor] = useState(false);
-  const [openAI, setOpenAI] = useState(false);
 
-  const debouncedUpdates = useDebounceCallback(
-    async ({ editor }: { editor: EditorInstance }) => {
-      const json = editor.getJSON();
-      if (!json.content || json.content.length === 0) return; // Prevent updating empty content
+  const { socket } = useSocket();
+  const { editor } = useEditor();
 
-      setContent(json);
-      setSaveStatus("Saving...");
-      if (params?.fileId) {
-        await updatePage(params.fileId as string, title, JSON.stringify(json));
-      }
+  const contentRef = useRef<JSONContent | null>(null);
+  const titleRef = useRef(title);
+
+  const handleSave = useDebounceCallback(async () => {
+    if (!params?.fileId) return;
+
+    if (titleRef.current === title && contentRef.current === content) return;
+
+    setSaveStatus("Saving...");
+
+    try {
+      await updatePage(params.fileId as string, title, JSON.stringify(content));
       setSaveStatus("Saved");
+      contentRef.current = content;
+      titleRef.current = title;
+    } catch (error) {
+      console.error("Failed to update page:", error);
+      setSaveStatus("Error");
+    }
+  }, 300);
+
+  const handleUpdate = useCallback(
+    ({ editor }: { editor: EditorInstance }) => {
+      const json = editor.getJSON();
+      if (!json.content || json.content.length === 0) return;
+      socket?.emit("send-changes", JSON.stringify(json), params?.fileId);
+      setContent(json);
     },
-    500
+    [handleSave, socket, params?.fileId]
   );
+
+  useEffect(() => {
+    if (!socket || !params?.fileId) return;
+
+    socket.emit("join-room", params.fileId);
+    console.log("🟩 Joining Room", params.fileId);
+  }, [socket, params?.fileId]);
 
   useEffect(() => {
     const fetchPage = async () => {
@@ -56,35 +83,30 @@ const Editor = () => {
 
       try {
         const response = await getPageById(params.fileId as string);
-        console.log("Response:", response);
-
         if (response?.content) {
           try {
             const parsedContent = JSON.parse(response.content);
             setContent(parsedContent);
+            contentRef.current = parsedContent;
           } catch (error) {
             console.error("Error parsing content JSON:", error);
-            setContent(null); // Set default empty content if parsing fails
+            setContent(null);
           }
         } else {
-          console.warn("Empty content received, initializing with default.");
           setContent({
             type: "doc",
             content: [
               {
                 type: "paragraph",
                 content: [
-                  {
-                    type: "text",
-                    text: "Type here or use '/' for more commands",
-                  },
+                  { type: "text", text: "Type here or use '/' for commands" },
                 ],
               },
             ],
           });
         }
-
         setTitle(response?.title || "Untitled");
+        titleRef.current = response?.title || "Untitled";
       } catch (error) {
         console.error("Error fetching page:", error);
       } finally {
@@ -95,19 +117,43 @@ const Editor = () => {
   }, [params?.fileId, setTitle]);
 
   useEffect(() => {
-    if (title.trim() !== "" && params?.fileId) {
-      setSaveStatus("Saving...");
-      updatePage(params?.fileId as string, title, JSON.stringify(content))
-        .then(() => setSaveStatus("Saved"))
-        .catch((error) => console.error("Failed to update page:", error));
-    }
-  }, [title, content]);
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === "s") {
+        event.preventDefault();
+        handleSave();
+      }
+    };
 
-  const extensions = [...defaultExtensions, slashCommand];
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [handleSave]);
+
+  useEffect(() => {
+    if (!socket || !params?.fileId) return;
+
+    console.log(
+      "🔄 Setting up receive-changes listener for file:",
+      params?.fileId
+    );
+
+    const receiveHandler = (data: any, fileId: string) => {
+      console.log("📥 Received changes:", data, "for file:", fileId);
+      if (fileId !== params?.fileId) return;
+      editor?.commands.setContent(JSON.parse(data));
+    };
+
+    socket.off("receive-changes"); // <-- Prevent duplicate listeners
+    socket.on("receive-changes", receiveHandler);
+
+    return () => {
+      socket.off("receive-changes", receiveHandler);
+    };
+  }, [socket, params?.fileId]);
+
+  const extensions = useMemo(() => [...defaultExtensions, slashCommand], []);
 
   return (
     <section className="relative bg-white dark:bg-zinc-900 p-4 text-black dark:text-white">
-      {/* Show loading message */}
       {loading ? (
         <div className="text-gray-500 dark:text-gray-400 flex items-center justify-center">
           <Loader2Icon className="animate-spin" />
@@ -115,11 +161,9 @@ const Editor = () => {
       ) : (
         <>
           <div className="flex overflow-hidden mb-8">
-            {saveStatus && (
-              <Badge className="bg-zinc-200 dark:bg-zinc-800 text-black dark:text-white border border-zinc-300 dark:border-zinc-700">
-                {saveStatus}
-              </Badge>
-            )}
+            <Badge className="bg-zinc-200 dark:bg-zinc-800 text-black dark:text-white border border-zinc-300 dark:border-zinc-700">
+              {saveStatus}
+            </Badge>
           </div>
           <div className="mb-4">
             <textarea
@@ -131,7 +175,7 @@ const Editor = () => {
           </div>
           <EditorRoot>
             <EditorContent
-              key={content ? JSON.stringify(content) : "default"}
+              key="editor"
               className="h-screen w-full bg-white dark:bg-zinc-900 text-black dark:text-white"
               initialContent={
                 content ?? {
@@ -142,7 +186,7 @@ const Editor = () => {
                       content: [
                         {
                           type: "text",
-                          text: "Type here or use '/' for more commands",
+                          text: "Type here or use '/' for commands",
                         },
                       ],
                     },
@@ -150,7 +194,7 @@ const Editor = () => {
                 }
               }
               extensions={extensions}
-              onUpdate={debouncedUpdates}
+              onUpdate={handleUpdate}
             >
               <EditorCommand className="border p-2 flex flex-col gap-2 items-center rounded-xl overflow-y-auto max-h-80">
                 <EditorCommandEmpty className="px-2 text-zinc-500 dark:text-zinc-400">
@@ -161,10 +205,10 @@ const Editor = () => {
                     <EditorCommandItem
                       value={item.title}
                       onCommand={(val) => item.command?.(val)}
-                      className="flex  items-center justify-start gap-2 px-2 py-1 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+                      className="flex items-center justify-start gap-2 px-2 py-1 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
                       key={item.title}
                     >
-                      <div className="p-2 rounded-lg bg-zinc-200 dark:bg-zinc-700 shadow-[inset_0_1px_0_0_rgba(0,0,0,0.1)] ">
+                      <div className="p-2 rounded-lg bg-zinc-200 dark:bg-zinc-700 shadow-[inset_0_1px_0_0_rgba(0,0,0,0.1)]">
                         {item.icon}
                       </div>
                       <div>
@@ -179,12 +223,7 @@ const Editor = () => {
                   ))}
                 </EditorCommandList>
               </EditorCommand>
-              <EditorBubble
-                tippyOptions={{
-                  placement: openAI ? "bottom-start" : "top",
-                }}
-                className="flex w-fit max-w-[90vw] overflow-hidden rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 shadow-xl text-black dark:text-white"
-              >
+              <EditorBubble className="flex w-fit max-w-[90vw] overflow-hidden rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 shadow-xl text-black dark:text-white">
                 <NodeSelector open={openNode} onOpenChange={setOpenNode} />
                 <LinkSelector open={openLink} onOpenChange={setOpenLink} />
                 <TextButtons />

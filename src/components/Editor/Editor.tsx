@@ -25,6 +25,7 @@ import { useParams } from "next/navigation";
 import { useFileState } from "@/context/fileStateProvider";
 import { Loader2Icon } from "lucide-react";
 import { useSocket } from "@/context/socketProvider";
+import { EVENTS } from "@/lib/constants";
 
 const Editor = () => {
   const params = useParams();
@@ -35,6 +36,7 @@ const Editor = () => {
   const [openNode, setOpenNode] = useState(false);
   const [openLink, setOpenLink] = useState(false);
   const [openColor, setOpenColor] = useState(false);
+  const [fileId, setFileId] = useState("");
 
   const { socket } = useSocket();
   const { editor } = useEditor();
@@ -42,47 +44,16 @@ const Editor = () => {
   const contentRef = useRef<JSONContent | null>(null);
   const titleRef = useRef(title);
 
-  const handleSave = useDebounceCallback(async () => {
-    if (!params?.fileId) return;
-
-    if (titleRef.current === title && contentRef.current === content) return;
-
-    setSaveStatus("Saving...");
-
-    try {
-      await updatePage(params.fileId as string, title, JSON.stringify(content));
-      setSaveStatus("Saved");
-      contentRef.current = content;
-      titleRef.current = title;
-    } catch (error) {
-      console.error("Failed to update page:", error);
-      setSaveStatus("Error");
-    }
-  }, 300);
-
-  const handleUpdate = useCallback(
-    ({ editor }: { editor: EditorInstance }) => {
-      const json = editor.getJSON();
-      if (!json.content || json.content.length === 0) return;
-      socket?.emit("send-changes", JSON.stringify(json), params?.fileId);
-      setContent(json);
-    },
-    [handleSave, socket, params?.fileId]
-  );
-
   useEffect(() => {
-    if (!socket || !params?.fileId) return;
-
-    socket.emit("join-room", params.fileId);
-    console.log("🟩 Joining Room", params.fileId);
-  }, [socket, params?.fileId]);
+    if (!params) return;
+    setFileId(params.fileId as string);
+  }, [params]);
 
   useEffect(() => {
     const fetchPage = async () => {
-      if (!params?.fileId) return;
-
+      if (!fileId) return;
       try {
-        const response = await getPageById(params.fileId as string);
+        const response = await getPageById(fileId);
         if (response?.content) {
           try {
             const parsedContent = JSON.parse(response.content);
@@ -114,7 +85,56 @@ const Editor = () => {
       }
     };
     fetchPage();
-  }, [params?.fileId, setTitle]);
+  }, [fileId, setTitle]);
+
+  useEffect(() => {
+    if (socket && fileId) {
+      setTimeout(() => {
+        socket.emit(EVENTS.JOIN_ROOM, fileId);
+        console.log("🟩 Joined Room", fileId);
+      }, 100);
+    }
+  }, [socket, fileId]);
+
+  useEffect(() => {
+    if (!socket || !fileId) return;
+    console.log("Emitting Changes", content, fileId);
+    socket.emit(EVENTS.SEND_CHANGES, JSON.stringify(content), fileId);
+  }, [socket, fileId, content]);
+
+  useEffect(() => {
+    console.log("🔄 Setting up receive-changes listener for file:", fileId);
+    const receiveHandler = (data: any, fileIdForData: string) => {
+      if (fileIdForData !== fileId) return;
+      console.log("📥 Received changes:", data, "for file:", fileIdForData);
+      editor?.commands.setContent(JSON.parse(data));
+    };
+    socket?.on(EVENTS.RECEIVE_CHANGES, receiveHandler);
+    return () => {
+      socket?.off(EVENTS.RECEIVE_CHANGES, receiveHandler);
+    };
+  }, [socket, fileId]);
+
+  const handleSave = useDebounceCallback(async () => {
+    if (!fileId) return;
+    if (titleRef.current === title && contentRef.current === content) return;
+    setSaveStatus("Saving...");
+    try {
+      await updatePage(fileId, title, JSON.stringify(content));
+      setSaveStatus("Saved");
+      contentRef.current = content;
+      titleRef.current = title;
+    } catch (error) {
+      console.error("Failed to update page:", error);
+      setSaveStatus("Error");
+    }
+  }, 300);
+
+  const handleUpdate = useCallback(({ editor }: { editor: EditorInstance }) => {
+    const json = editor.getJSON();
+    if (!json.content || json.content.length === 0) return;
+    setContent(json);
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -123,32 +143,9 @@ const Editor = () => {
         handleSave();
       }
     };
-
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [handleSave]);
-
-  useEffect(() => {
-    if (!socket || !params?.fileId) return;
-
-    console.log(
-      "🔄 Setting up receive-changes listener for file:",
-      params?.fileId
-    );
-
-    const receiveHandler = (data: any, fileId: string) => {
-      console.log("📥 Received changes:", data, "for file:", fileId);
-      if (fileId !== params?.fileId) return;
-      editor?.commands.setContent(JSON.parse(data));
-    };
-
-    socket.off("receive-changes"); // <-- Prevent duplicate listeners
-    socket.on("receive-changes", receiveHandler);
-
-    return () => {
-      socket.off("receive-changes", receiveHandler);
-    };
-  }, [socket, params?.fileId]);
 
   const extensions = useMemo(() => [...defaultExtensions, slashCommand], []);
 

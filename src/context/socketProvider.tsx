@@ -23,11 +23,7 @@ const SocketProvider = ({ children }: { children: React.ReactNode }) => {
 
     const socketInstance = io(process.env.NEXT_PUBLIC_CLIENT_URL!, {
       path: "/api/socket/io",
-      addTrailingSlash: false,
-      autoConnect: true, // 🚀 Ensure auto-reconnect
-      reconnection: true,
-      reconnectionAttempts: 10,
-      reconnectionDelay: 2000, // Try reconnecting every 2s
+      addTrailingSlash: false
     });
 
     socketInstance.on("connect", () => {

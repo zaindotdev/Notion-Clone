@@ -2,6 +2,7 @@ import { Server as NetServer, Socket } from "net";
 import { Server as httpServer } from "http";
 import { type NextApiResponse, NextApiRequest } from "next";
 import { Server as SocketIOServer } from "socket.io";
+import { EVENTS } from "@/lib/constants";
 
 export type NextApiResponseWithSocket = NextApiResponse & {
   socket: Socket & {
@@ -35,22 +36,22 @@ export default function handler(
   io.on("connection", (socket) => {
     console.log("🔌 A user connected:", socket.id);
 
-    socket.on("join-room", (roomId) => {
+    socket.on(EVENTS.JOIN_ROOM, (roomId) => {
       console.log("🟩 User joined room:", roomId);
       socket.join(roomId);
     });
 
-    socket.on("send-changes", (data, fileId) => {
+    socket.on(EVENTS.SEND_CHANGES, (data, fileId) => {
       console.log("📨 Receiving changes from client:", data);
       if (!fileId) {
         console.error("❌ No fileId provided, ignoring event");
         return;
       }
-      io.emit("receive-changes", data);
+      io.in(fileId).emit(EVENTS.RECEIVE_CHANGES, data);
     });
 
-    socket.on("cursor-movement", (cursorId, fileId, range) => {
-      socket.to(fileId).emit("cursor-movement", cursorId, range);
+    socket.on(EVENTS.CURSOR_MOVEMENT, (cursorId, fileId, range) => {
+      io.in(fileId).emit(EVENTS.REVEIVE_CURSOR_MOVEMENT, cursorId, range);
     });
 
     socket.on("disconnect", (reason) => {
